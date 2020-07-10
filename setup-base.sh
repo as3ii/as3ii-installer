@@ -20,7 +20,7 @@ else
 fi
 # loop as long as $disk is a valid device
 while [ -z "$disk" ] || [ ! -e "$disk" ] || \
-    expr "$disk" : '^/dev/\(sd[a-z]\|nvme[0-9]n[0-9]\)$' >/dev/null; do
+    ! expr "$disk" : '^/dev/\(sd[a-z]\|nvme[0-9]n[0-9]\)$' >/dev/null; do
     printf "Type the device name ('/dev/' required): "
     read -r disk
     [ ! -e "$disk" ] && printf "This device doesn't exist\n"
