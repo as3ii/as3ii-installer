@@ -2,28 +2,42 @@
 
 set -e # exit immediately if a command return non-zero status
 
+### Help
 if [ -n "$1" ] & [ "$1" = "-h" ] | [ "$1" = "--help" ]; then
     printf "Usage: %s '/dev/sdX' 'uk'\n" "$0"
     exit
 fi
-# check parameter
-printf "Device list: %s\n" \
-    "$(find /dev/ -regex "/dev/sd[a-z]" -or -regex "/dev/nvme[0-9]n[0-9]")"
-if [ -n "$1" ]; then
+
+### Device selection
+# print device list
+printf "Device list: %s\n" "$(find /dev/ -regex "/dev/\(sd[a-z]\|nvme[0-9]n[0-9]\)")"
+# check if $1 not empty
+if [ -n "$1" ] & [ -e "$1"] & \
+    expr "$1" : '^/dev/\(sd[a-z]\|nvme[0-9]n[0-9]\)$' >/dev/null; then
     disk="$1"
     shift
 else
     disk=""
 fi
-while [ -z "$disk" ]; do
+# loop as long as $disk is a valid device
+while [ -z "$disk" ] & [ ! -e "$disk" ]; do
     printf "Type the device name ('/dev/' required): "
     read -r disk
+    [ ! -e "$disk" ] && printf "This device doesn't exist\n"
+    if ! expr "$disk" : '^/dev/\(sd[a-z]\|nvme[0-9]n[0-9]\)$' >/dev/null; then
+        printf "You should type a device name, not a partition name\n"
+        disk=""
+    fi
 done
+# check disk and ask if it is correct
 sgdisk -p "$disk"
+printf "This device will be wiped, are you sure you want to use this device? [y/N] "
+read -r sure
+[ "$sure" != 'y' ] && exit
 
 # load keyboard layout
 if [ -n "$1" ];then
-    lang=$1
+    lang="$1"
     shift
 else
     lang=""
