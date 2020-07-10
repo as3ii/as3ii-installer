@@ -12,15 +12,15 @@ fi
 # print device list
 printf "Device list: %s\n" "$(find /dev/ -regex "/dev/\(sd[a-z]\|nvme[0-9]n[0-9]\)")"
 # check if $1 not empty
-if [ -n "$1" ] & [ -e "$1"] & \
-    expr "$1" : '^/dev/\(sd[a-z]\|nvme[0-9]n[0-9]\)$' >/dev/null; then
+if [ -n "$1" ]; then
     disk="$1"
     shift
 else
     disk=""
 fi
 # loop as long as $disk is a valid device
-while [ -z "$disk" ] & [ ! -e "$disk" ]; do
+while [ -z "$disk" ] & [ ! -e "$disk" ] & \
+    expr "$disk" : '^/dev/\(sd[a-z]\|nvme[0-9]n[0-9]\)$' >/dev/null; do
     printf "Type the device name ('/dev/' required): "
     read -r disk
     [ ! -e "$disk" ] && printf "This device doesn't exist\n"
