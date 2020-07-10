@@ -92,10 +92,10 @@ umount /mnt
 # mount subvolumes
 for sv in $subvolumes; do
     if [ "$sv" != "@" ]; then
-        mkdir -p "/mnt/$(echo ${sv#@} | sed 's/_/\//g')"
+        mkdir -p "/mnt/$(echo "${sv#@}" | sed 's/_/\//g')"
     fi
     mount -o "$mntopt,subvol=$sv" /dev/mapper/cryptroot \
-        "/mnt/$(echo ${sv#@} | sed 's/_/\//g')"
+        "/mnt/$(echo "${sv#@}" | sed 's/_/\//g')"
 done
 
 # mount boot/EFI partition
