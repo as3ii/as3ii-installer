@@ -42,7 +42,7 @@ if [ -n "$1" ];then
 else
     lang=""
 fi
-while [ -z "$lang" ]; do
+while [ -z "$lang" ] & ! localectl list-keymaps | grep -q "^$lang$"; do
     printf "Type the 2chars keymap code (es. en): "
     read -r lang
 done
