@@ -19,7 +19,7 @@ else
     disk=""
 fi
 # loop as long as $disk is a valid device
-while [ -z "$disk" ] & [ ! -e "$disk" ] & \
+while [ -z "$disk" ] || [ ! -e "$disk" ] || \
     expr "$disk" : '^/dev/\(sd[a-z]\|nvme[0-9]n[0-9]\)$' >/dev/null; do
     printf "Type the device name ('/dev/' required): "
     read -r disk
@@ -42,7 +42,7 @@ if [ -n "$1" ];then
 else
     lang=""
 fi
-while [ -z "$lang" ] & ! localectl list-keymaps | grep -q "^$lang$"; do
+while [ -z "$lang" ] || ! localectl list-keymaps | grep -q "^$lang$"; do
     printf "Type the 2chars keymap code (es. en): "
     read -r lang
 done
