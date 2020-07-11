@@ -142,10 +142,21 @@ pacman -Sy archlinux-keyring
 
 # install system
 pacstrap -i /mnt base base-devel linux linux-firmware \
-    btrfs-progs man-db man-pages texinfo neovim git
+    btrfs-progs man-db man-pages texinfo neovim git grub efibootmgr
 
 # generate fstab
 genfstab -U /mnt >> /mnt/etc/fstab
+
+# setup grub
+if $efi; then
+    arch-chroot /mnt "\
+        grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB; \
+        grub-mkconfig -o /boot/grub/grub.cfg"
+else
+    arch-chroot /mnt "\
+        grub-install --target=i386-pc $disk; \
+        grub-mkconfig -o /boot/grub/grub.cfg"
+fi
 
 # chroot in the installed system and exec install.sh
 #arch-chroot /mnt install.sh
