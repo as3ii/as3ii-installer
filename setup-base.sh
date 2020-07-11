@@ -147,6 +147,18 @@ pacstrap /mnt base base-devel linux linux-firmware \
 # generate fstab
 genfstab -U /mnt >> /mnt/etc/fstab
 
+# fix fstab
+sed 's/subvolid=[0-9]\+\,\?//g' /mnt/etc/fstab
+
+# update mkinitcpio
+sed 's/BINARIES=()/BINARIES=(/usr/bin/btrfs)/' /mnt/etc/mkinitcpio.conf
+sed 's/HOOKS=(.*)/HOOKS=(base systemd autodetect keyboard \
+    sd-vconsole modconf block sd-encrypt filesystems fsck)' /mnt/etc/mkinitcpio.conf
+
+# fix grub config
+sed 's/quiet//' /etc/default/grub; \
+echo 'GRUB_ENABLE_CRYPTODISK=y' >> /etc/default/grub; \
+
 # setup grub
 if $efi; then
     arch-chroot /mnt sh -c "\
