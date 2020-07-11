@@ -8,6 +8,10 @@
 
 If you want, you can add the device name and the keymap code as parameters
 
+NOTE: running `pacman -Syu git` on an old live environment (even just a few months)
+could result in filling of _cowspace_, so you may need to run `mount -o
+remount,size=2G /run/archiso/cowspace`
+
 ## To Do:
 - [ ] add more checks
 - [ ] more verbose output
