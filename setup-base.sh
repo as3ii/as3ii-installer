@@ -153,6 +153,11 @@ sed -e 's/subvolid=[0-9]\+\,\?//g' \
     -e 's/relatime/noatime/g' \
     /mnt/etc/fstab.old >/mnt/etc/fstab
 
+# set crypttab.initramfs
+cp /mnt/etc/crypttab /mnt/etc/crypttab.initramfs
+printf "cryptroot   UUID=%s   luks,discard\n" "$(lsblk -dnu UUID "$disk")" \
+    >>/mnt/etc/crypttab.initramfs
+
 # update mkinitcpio
 mv /mnt/etc/mkinitcpio.conf /mnt/etc/mkinitcpio.conf.old
 sed -e 's/^BINARIES=()/BINARIES=(\/usr\/bin\/btrfs)/' \
