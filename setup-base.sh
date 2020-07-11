@@ -149,11 +149,11 @@ genfstab -U /mnt >> /mnt/etc/fstab
 
 # setup grub
 if $efi; then
-    arch-chroot /mnt "\
+    arch-chroot /mnt sh -c "\
         grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB; \
         grub-mkconfig -o /boot/grub/grub.cfg"
 else
-    arch-chroot /mnt "\
+    arch-chroot /mnt sh -c "\
         grub-install --target=i386-pc $disk; \
         grub-mkconfig -o /boot/grub/grub.cfg"
 fi
