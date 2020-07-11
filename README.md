@@ -11,4 +11,4 @@ If you want, you can add the device name and the keymap code as parameters
 ## To Do:
 - [ ] add more checks
 - [ ] more verbose output
-- [ ] grub installation and configuration
+- [x] grub installation and configuration
