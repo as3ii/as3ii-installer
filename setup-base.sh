@@ -148,14 +148,15 @@ pacstrap /mnt base base-devel linux linux-firmware \
 genfstab -U /mnt >> /mnt/etc/fstab
 
 # fix fstab
-sed 's/subvolid=[0-9]\+\,\?//g' /mnt/etc/fstab > /mnt/etc/fstab
+mv /mnt/etc/fstab /mnt/etc/fstab.old
+sed 's/subvolid=[0-9]\+\,\?//g' /mnt/etc/fstab.old > /mnt/etc/fstab
 
 # update mkinitcpio
-sed 's/BINARIES=()/BINARIES=(\/usr\/bin\/btrfs)/' \
-    /mnt/etc/mkinitcpio.conf >/mnt/etc/mkinitcpio.conf
-sed 's/HOOKS=(.*)/HOOKS=(base systemd autodetect keyboard \
+mv /mnt/etc/mkinitcpio.conf /mnt/etc/mkinitcpio.conf.old
+sed -e 's/^BINARIES=()/BINARIES=(\/usr\/bin\/btrfs)/' \
+    -e 's/^HOOKS=(.*)/HOOKS=(base systemd autodetect keyboard \\\
     sd-vconsole modconf block sd-encrypt filesystems fsck)/' \
-    /mnt/etc/mkinitcpio.conf >/mnt/etc/mkinitcpio.conf
+    /mnt/etc/mkinitcpio.conf.old >/mnt/etc/mkinitcpio.conf
 
 # fix grub config
 sed 's/quiet//' /etc/default/grub >/etc/default/grub
