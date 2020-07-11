@@ -141,7 +141,7 @@ sync
 pacman -Sy archlinux-keyring
 
 # install system
-pacstrap -i /mnt base base-devel linux linux-firmware \
+pacstrap /mnt base base-devel linux linux-firmware \
     btrfs-progs man-db man-pages texinfo neovim git grub efibootmgr
 
 # generate fstab
