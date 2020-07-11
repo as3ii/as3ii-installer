@@ -159,8 +159,9 @@ sed -e 's/^BINARIES=()/BINARIES=(\/usr\/bin\/btrfs)/' \
     /mnt/etc/mkinitcpio.conf.old >/mnt/etc/mkinitcpio.conf
 
 # fix grub config
-sed 's/quiet//' /etc/default/grub >/etc/default/grub
-echo 'GRUB_ENABLE_CRYPTODISK=y' >> /etc/default/grub
+mv /mnt/etc/default/grub /mnt/etc/default/grub.old
+sed 's/quiet//' /mnt/etc/default/grub.old >/mnt/etc/default/grub
+echo 'GRUB_ENABLE_CRYPTODISK=y' >> /mnt/etc/default/grub
 
 # setup grub
 if $efi; then
