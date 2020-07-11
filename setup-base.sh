@@ -35,6 +35,7 @@ printf "This device will be wiped, are you sure you want to use this device? [y/
 read -r sure
 [ "$sure" != 'y' ] && exit
 
+
 # load keyboard layout
 if [ -n "$1" ];then
     lang="$1"
@@ -43,12 +44,19 @@ else
     lang=""
 fi
 while [ -z "$lang" ] || ! localectl list-keymaps | grep -q "^$lang$"; do
-    printf "Type the 2chars keymap code (es. en): "
+    printf "Type the keymap code (es. en): "
     read -r lang
 done
 loadkeys "$lang"
 
 set -eu
+
+# check internet availability
+printf "checking internet connection...\n"
+if ! curl -Ism 5 https://www.archlinux.org >/dev/null; then
+    printf "Internet connection is not working correctly. Exiting\n"
+    exit
+fi
 
 # enable clock sync
 timedatectl set-ntp true
