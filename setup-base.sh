@@ -138,7 +138,7 @@ swapon /mnt/swap/.swapfile
 sync
 
 # update local pgp keys
-pacman -Sy archlinux-keyring
+pacman -Sy archlinux-keyring --noconfirm
 
 # install system
 pacstrap /mnt base base-devel linux linux-firmware \
