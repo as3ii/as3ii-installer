@@ -148,16 +148,18 @@ pacstrap /mnt base base-devel linux linux-firmware \
 genfstab -U /mnt >> /mnt/etc/fstab
 
 # fix fstab
-sed 's/subvolid=[0-9]\+\,\?//g' /mnt/etc/fstab
+sed 's/subvolid=[0-9]\+\,\?//g' /mnt/etc/fstab > /mnt/etc/fstab
 
 # update mkinitcpio
-sed 's/BINARIES=()/BINARIES=(/usr/bin/btrfs)/' /mnt/etc/mkinitcpio.conf
+sed 's/BINARIES=()/BINARIES=(\/usr\/bin\/btrfs)/' \
+    /mnt/etc/mkinitcpio.conf >/mnt/etc/mkinitcpio.conf
 sed 's/HOOKS=(.*)/HOOKS=(base systemd autodetect keyboard \
-    sd-vconsole modconf block sd-encrypt filesystems fsck)' /mnt/etc/mkinitcpio.conf
+    sd-vconsole modconf block sd-encrypt filesystems fsck)/' \
+    /mnt/etc/mkinitcpio.conf >/mnt/etc/mkinitcpio.conf
 
 # fix grub config
-sed 's/quiet//' /etc/default/grub; \
-echo 'GRUB_ENABLE_CRYPTODISK=y' >> /etc/default/grub; \
+sed 's/quiet//' /etc/default/grub >/etc/default/grub
+echo 'GRUB_ENABLE_CRYPTODISK=y' >> /etc/default/grub
 
 # setup grub
 if $efi; then
@@ -174,6 +176,7 @@ fi
 #arch-chroot /mnt install.sh
 
 # end
-umount /mnt
+swapoff /mnt/swap/.swapfile
+umount -R /mnt
 cryptsetup close cryptroot
 
