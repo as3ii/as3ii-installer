@@ -149,7 +149,9 @@ genfstab -U /mnt >> /mnt/etc/fstab
 
 # fix fstab
 mv /mnt/etc/fstab /mnt/etc/fstab.old
-sed 's/subvolid=[0-9]\+\,\?//g' /mnt/etc/fstab.old > /mnt/etc/fstab
+sed -e 's/subvolid=[0-9]\+\,\?//g' \
+    -e 's/relatime/noatime/g' \
+    /mnt/etc/fstab.old >/mnt/etc/fstab
 
 # update mkinitcpio
 mv /mnt/etc/mkinitcpio.conf /mnt/etc/mkinitcpio.conf.old
@@ -160,8 +162,9 @@ sed -e 's/^BINARIES=()/BINARIES=(\/usr\/bin\/btrfs)/' \
 
 # fix grub config
 mv /mnt/etc/default/grub /mnt/etc/default/grub.old
-sed 's/quiet//' /mnt/etc/default/grub.old >/mnt/etc/default/grub
-echo 'GRUB_ENABLE_CRYPTODISK=y' >> /mnt/etc/default/grub
+sed -e 's/quiet//' \
+    -e 's/^#GRUB_ENABLE_CRYPTODISK=./GRUB_ENABLE_CRYPTODISK=y/' \
+    /mnt/etc/default/grub.old >/mnt/etc/default/grub
 
 # setup grub
 if $efi; then
@@ -173,6 +176,24 @@ else
         grub-install --target=i386-pc $disk; \
         grub-mkconfig -o /boot/grub/grub.cfg"
 fi
+
+# set keymap
+printf "KEYMAP=%s" "$lang" >/mnt/etc/vconsole.conf
+
+# set locale
+sed 's/#en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /mnt/etc/locale.gen > /mnt/etc/locale.gen.new
+mv /mnt/etc/locale.gen.new /mnt/etc/locale.gen
+locale-gen
+printf "LANG=en_US.UTF-8" >/mnt/etc/locale.conf
+
+# localhost
+printf "127.0.0.1	localhost\n::1		localhost\n" >/mnt/etc/hosts
+
+# regen initcpio
+arch-chroot /mnt sh -c "mkinitcpio -P"
+
+# set root password
+arch-chroot /mnt sh -c "passwd"
 
 # chroot in the installed system and exec install.sh
 #arch-chroot /mnt install.sh
