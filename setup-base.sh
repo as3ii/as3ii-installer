@@ -61,19 +61,34 @@ fi
 # enable clock sync
 timedatectl set-ntp true
 
+# check efi/bios
+if ls /sys/firmware/efi/efivars >/dev/null; then
+    efi=true
+    printf "EFI detected\n"
+else
+    efi=false
+    printf "BIOS detected\n"
+fi
 
 # partitioning
 #  260MiB EFI
 #  remaining: Linux Filesystem
 sgdisk --zap-all "$disk"
-sgdisk -n 0:0:+260MiB -t 0:ef00 -c 0:EFI "$disk"
+if $efi; then
+    sgdisk -n 0:0:+260MiB -t 0:ef00 -c 0:BOOT "$disk"
+else
+    sgdisk -n 0:0:+260MiB -t 0:ef02 -c 0:BOOT "$disk"
+fi
 sgdisk -n 0:0:0 -t 0:8309 -c 0:cryptroot "$disk"
 
 # force re-reading the partition table
 sync
 partprobe "$disk"
 
-mkfs.vfat "${disk}1" # EFI partition
+# print results
+sgdisk -p "$disk"
+
+mkfs.vfat "${disk}1" # BOOT partition
 
 # crypt the other partition and format it in btrfs
 cryptsetup --type luks1 luksFormat "${disk}2"
