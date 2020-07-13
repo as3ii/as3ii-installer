@@ -2,15 +2,27 @@
 
 set -e # exit immediately if a command return non-zero status
 
+print_ok() {
+    printf "\e[32m%b\e[0m" "$1"
+}
+
+print_info() {
+    printf "\e[36m%b\e[0m" "$1"
+}
+
+print_error() {
+    printf "\n[31m%b\e[0m" "$1"
+}
+
 ### Help
 if [ -n "$1" ] & [ "$1" = "-h" ] | [ "$1" = "--help" ]; then
-    printf "Usage: %s '/dev/sdX' 'uk'\n" "$0"
+    print_info "Usage: $0 '/dev/sdX' 'uk'\n"
     exit
 fi
 
 ### Device selection
 # print device list
-printf "Device list: %s\n" "$(find /dev/ -regex "/dev/\(sd[a-z]\|nvme[0-9]n[0-9]\)")"
+print_info "Device list: $(find /dev/ -regex "/dev/\(sd[a-z]\|nvme[0-9]n[0-9]\)")\n"
 # check if $1 not empty
 if [ -n "$1" ]; then
     disk="$1"
@@ -21,17 +33,17 @@ fi
 # loop as long as $disk is a valid device
 while [ -z "$disk" ] || [ ! -e "$disk" ] || \
     ! expr "$disk" : '^/dev/\(sd[a-z]\|nvme[0-9]n[0-9]\)$' >/dev/null; do
-    printf "Type the device name ('/dev/' required): "
+    print_info "Type the device name ('/dev/' required): "
     read -r disk
-    [ ! -e "$disk" ] && printf "This device doesn't exist\n"
+    [ ! -e "$disk" ] && print_error "This device doesn't exist\n"
     if ! expr "$disk" : '^/dev/\(sd[a-z]\|nvme[0-9]n[0-9]\)$' >/dev/null; then
-        printf "You should type a device name, not a partition name\n"
+        print_error "You should type a device name, not a partition name\n"
         disk=""
     fi
 done
 # check disk and ask if it is correct
 sgdisk -p "$disk"
-printf "This device will be wiped, are you sure you want to use this device? [y/N] "
+print_info "This device will be wiped, are you sure you want to use this device? [y/N] "
 read -r sure
 [ "$sure" != 'y' ] && exit
 
@@ -44,17 +56,18 @@ else
     lang=""
 fi
 while [ -z "$lang" ] || ! localectl list-keymaps | grep -q "^$lang$"; do
-    printf "Type the keymap code (es. en): "
+    print_info "Type the keymap code (es. en): "
     read -r lang
 done
 loadkeys "$lang"
+print_ok "Keymap loaded"
 
 set -eu
 
 # check internet availability
-printf "checking internet connection...\n"
+print_info "checking internet connection...\n"
 if ! curl -Ism 5 https://www.archlinux.org >/dev/null; then
-    printf "Internet connection is not working correctly. Exiting\n"
+    print_error "Internet connection is not working correctly. Exiting\n"
     exit
 fi
 
@@ -64,10 +77,10 @@ timedatectl set-ntp true
 # check efi/bios
 if ls /sys/firmware/efi/efivars >/dev/null; then
     efi=true
-    printf "EFI detected\n"
+    print_ok "EFI detected\n"
 else
     efi=false
-    printf "BIOS detected\n"
+    print_ok "BIOS detected\n"
 fi
 
 # partitioning
