@@ -140,6 +140,7 @@ mount "${disk}1" /mnt/boot
 
 
 # create swapfile system
+print_info "Setting swapfile\n"
 truncate -s 0 /mnt/swap/.swapfile
 chattr +C /mnt/swap/.swapfile
 btrfs property set /mnt/swap/.swapfile compression none
@@ -151,13 +152,21 @@ swapon /mnt/swap/.swapfile
 sync
 
 # update local pgp keys
+print_info "Updating archlinux keyring\n"
 pacman -Sy archlinux-keyring --noconfirm
 
+# update and sort mirrors
+print_info "Using 'reflector' to find best mirrors\n"
+pacman -Sy reflector --noconfirm
+reflector -l 100 -f 10 -p https --sort rate --save /etc/pacman.d/mirrorlist
+
 # install system
-pacstrap /mnt base base-devel linux linux-firmware \
-    btrfs-progs man-db man-pages texinfo neovim git grub efibootmgr
+print_info "Installing basic system\n"
+pacstrap /mnt base linux linux-firmware \
+    btrfs-progs man-db man-pages neovim git grub efibootmgr
 
 # generate fstab
+print_info "Generating fstab and crypttab\n"
 genfstab -U /mnt >> /mnt/etc/fstab
 
 # fix fstab
@@ -172,6 +181,7 @@ printf "cryptroot   UUID=%s   luks,discard\n" "$(lsblk -dno UUID "${disk}2")" \
     >>/mnt/etc/crypttab.initramfs
 
 # update mkinitcpio
+print_info "Updating mkinitcpio.conf\n"
 mv /mnt/etc/mkinitcpio.conf /mnt/etc/mkinitcpio.conf.old
 sed -e 's/^BINARIES=()/BINARIES=(\/usr\/bin\/btrfs)/' \
     -e 's/^HOOKS=(.*)/HOOKS=(base systemd autodetect keyboard \\\
@@ -179,6 +189,7 @@ sed -e 's/^BINARIES=()/BINARIES=(\/usr\/bin\/btrfs)/' \
     /mnt/etc/mkinitcpio.conf.old >/mnt/etc/mkinitcpio.conf
 
 # fix grub config
+print_info "Configuring and installing grub\n"
 mv /mnt/etc/default/grub /mnt/etc/default/grub.old
 sed -e 's/quiet//' \
     -e 's/^#GRUB_ENABLE_CRYPTODISK=./GRUB_ENABLE_CRYPTODISK=y/' \
@@ -220,4 +231,6 @@ arch-chroot /mnt sh -c "passwd"
 swapoff /mnt/swap/.swapfile
 umount -R /mnt
 cryptsetup close cryptroot
+
+print_ok "\nEND\n\n"
 
