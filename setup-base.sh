@@ -11,7 +11,7 @@ print_info() {
 }
 
 print_error() {
-    printf "\n[31m%b\e[0m" "$1"
+    printf "\e[31m%b\e[0m" "$1"
 }
 
 ### Help
