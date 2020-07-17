@@ -60,7 +60,7 @@ while [ -z "$lang" ] || ! localectl list-keymaps | grep -q "^$lang$"; do
     read -r lang
 done
 loadkeys "$lang"
-print_ok "Keymap loaded"
+print_ok "Keymap loaded\n"
 
 set -eu
 
@@ -168,7 +168,7 @@ sed -e 's/subvolid=[0-9]\+\,\?//g' \
 
 # set crypttab.initramfs
 cp /mnt/etc/crypttab /mnt/etc/crypttab.initramfs
-printf "cryptroot   UUID=%s   luks,discard\n" "$(lsblk -dnu UUID "$disk")" \
+printf "cryptroot   UUID=%s   luks,discard\n" "$(lsblk -dno UUID "${disk}2")" \
     >>/mnt/etc/crypttab.initramfs
 
 # update mkinitcpio
