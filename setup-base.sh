@@ -104,7 +104,7 @@ sgdisk -p "$disk"
 mkfs.vfat "${disk}1" # BOOT partition
 
 # crypt the other partition and format it in btrfs
-cryptsetup --type luks1 luksFormat "${disk}2"
+cryptsetup --type luks2 luksFormat "${disk}2"
 cryptsetup open "${disk}2" cryptroot
 mkfs.btrfs -L arch --checksum xxhash /dev/mapper/cryptroot
 
