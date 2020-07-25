@@ -20,6 +20,7 @@ This script will wipe the given device, these are the partitions that will be cr
             Hash: xxhash
             Mount Point: none
             Mount Options: autodefrag,space_cache=v2,noatime,compress=zstd:2
+            Subvolumes:
                 Subolume         : Mount Point       : specific options
                 @                : /
                 @snapshot        : /snapshot
