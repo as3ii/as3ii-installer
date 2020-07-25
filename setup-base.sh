@@ -202,8 +202,6 @@ mount "${disk}1" /mnt/boot
 # create swapfile system
 print_info "Setting swapfile\n"
 truncate -s 0 /mnt/swap/.swapfile
-chattr +C /mnt/swap/.swapfile
-btrfs property set /mnt/swap/.swapfile compression none
 fallocate -l 2G /mnt/swap/.swapfile
 chmod 600 /mnt/swap/.swapfile
 mkswap /mnt/swap/.swapfile
