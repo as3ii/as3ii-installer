@@ -35,6 +35,11 @@ This script will wipe the given device, these are the partitions that will be cr
                 @var_log         : /var/log
                 @var_tmp         : /var/tmp          : nocow
 ```
+Then it will create swapfile, update archlinux-keyring, update pacman's mirrors list,
+install base system (`base` `linux` `linux-firmware` `btrfs-progs` `man-db` `man-pages`
+`neovim` `git` `grub` `efibootmgr`), generate fstab and crypttab, configure mkinitcpio,
+configure and install grub, and setting some base things such as keymap and locale.
+
 
 ## To Do:
 - [ ] add more checks
