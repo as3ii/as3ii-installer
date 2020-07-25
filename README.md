@@ -20,6 +20,7 @@ This script will wipe the given device, these are the partitions that will be cr
             Hash: xxhash
             Mount Point: none
             Mount Options: autodefrag,space_cache=v2,noatime,compress=zstd:2
+                           'discard=async' will be added when ssd is detected
             Subvolumes:
                 Subolume         : Mount Point       : specific options
                 @                : /
