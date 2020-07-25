@@ -28,6 +28,7 @@ if [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
     print_info "            FS: btrfs\n"
     print_info "            Hash: xxhash\n"
     print_info "            Mount Point: none\n"
+    print_info "            Mount Options: autodefrag,space_cache=v2,noatime,compress=zstd:2\n"
     print_info "                Subolume         : Mount Point       : specific options\n"
     print_info "                @                : /\n"
     print_info "                @snapshot        : /snapshot\n"
