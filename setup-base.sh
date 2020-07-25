@@ -153,7 +153,7 @@ print_info "Creating subvolumes\n"
 for sv in $subvolumes; do
     btrfs subvolume create "/mnt/$sv"
 done
-for sv in $subvolumes; do
+for sv in $subvolumes_nocow; do
     btrfs subvolume create "/mnt/$sv"
 done
 sync
