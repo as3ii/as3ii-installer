@@ -110,6 +110,15 @@ else
     print_ok "BIOS detected\n"
 fi
 
+if "$(cat "/sys/block/$(echo "$disk" | sed 's/\/dev\///')/queue/rotational")" -eq "0"; then
+    ssd=true
+    print_ok "SSD detected\n"
+else
+    ssd=false
+    print_ok "HDD detected\n"
+fi
+
+
 # partitioning
 #  260MiB EFI
 #  remaining: Linux Filesystem
@@ -142,6 +151,10 @@ mkfs.btrfs -L arch --checksum xxhash /dev/mapper/cryptroot
 # common mount options
 mntopt="autodefrag,space_cache=v2,noatime,compress=zstd:2"
 mntopt_nocow="autodefrag,space_cache=v2,noatime,nocow"
+if $ssd; then
+    mntopt="$mntopt,discard=async"
+    mntopt_nocow="$mntopt,discard=async"
+fi
 
 # mount the new btrfs partition with some options
 mount -o "$mntopt" /dev/mapper/cryptroot /mnt
