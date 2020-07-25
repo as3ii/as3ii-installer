@@ -145,7 +145,7 @@ mntopt_nocow="autodefrag,space_cache=v2,noatime,nocow"
 mount -o "$mntopt" /dev/mapper/cryptroot /mnt
 
 # subvolume array
-subvolumes="@ @snapshot @home @opt @root @tmp @usr_local @var_lib_flatpack @var_log"
+subvolumes="@ @snapshot @home @opt @root @usr_local @var_lib_flatpack @var_log"
 subvolumes_nocow="@swap @tmp @var_cache @var_lib_libvirt @var_tmp"
 
 # create root, swap and snapshot subvolumes
