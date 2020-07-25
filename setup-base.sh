@@ -15,8 +15,33 @@ print_error() {
 }
 
 ### Help
-if [ -n "$1" ] & [ "$1" = "-h" ] | [ "$1" = "--help" ]; then
+if [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
     print_info "Usage: $0 '/dev/sdX' 'uk'\n"
+    print_info "This script will wipe the given device, "
+    print_info "these are the partitions that will be created\n"
+    print_info "1: boot partition\n"
+    print_info "            FS: vfat\n"
+    print_info "            Mount Point: /boot\n"
+    print_info "2: luks2 encrypted partition\n"
+    print_info "            Mount Point: /dev/mapper/cryptroot\n"
+    print_info "    2.1: root partition\n"
+    print_info "            FS: btrfs\n"
+    print_info "            Hash: xxhash\n"
+    print_info "            Mount Point: none\n"
+    print_info "                Subolume         : Mount Point       : specific options\n"
+    print_info "                @                : /\n"
+    print_info "                @snapshot        : /snapshot\n"
+    print_info "                @home            : /home\n"
+    print_info "                @opt             : /opt\n"
+    print_info "                @root            : /root\n"
+    print_info "                @swap            : /swap             : nocow\n"
+    print_info "                @tmp             : /tmp              : nocow\n"
+    print_info "                @usr_local       : /usr/local\n"
+    print_info "                @var_cache       : /var/cache        : nocow\n"
+    print_info "                @var_lib_flatpack: /var/lib/flatpack\n"
+    print_info "                @var_lib_libvirt : /var/lib/libvirt  : nocow\n"
+    print_info "                @var_log         : /var/log\n"
+    print_info "                @var_tmp         : /var/tmp          : nocow\n"
     exit
 fi
 
@@ -65,7 +90,7 @@ print_ok "Keymap loaded\n"
 set -eu
 
 # check internet availability
-print_info "checking internet connection...\n"
+print_info "Checking internet connection...\n"
 if ! curl -Ism 5 https://www.archlinux.org >/dev/null; then
     print_error "Internet connection is not working correctly. Exiting\n"
     exit
@@ -86,6 +111,7 @@ fi
 # partitioning
 #  260MiB EFI
 #  remaining: Linux Filesystem
+print_info "Partitioning $disk\n"
 sgdisk --zap-all "$disk"
 if $efi; then
     sgdisk -n 0:0:+260MiB -t 0:ef00 -c 0:BOOT "$disk"
@@ -101,36 +127,54 @@ partprobe "$disk"
 # print results
 sgdisk -p "$disk"
 
+print_info "Formatting boot partition\n"
 mkfs.vfat "${disk}1" # BOOT partition
 
 # crypt the other partition and format it in btrfs
+print_info "Setting luks2 partition\n"
 cryptsetup --type luks2 luksFormat "${disk}2"
 cryptsetup open "${disk}2" cryptroot
+print_info "Formatting root in btrfs"
 mkfs.btrfs -L arch --checksum xxhash /dev/mapper/cryptroot
 
 # common mount options
 mntopt="autodefrag,space_cache=v2,noatime,compress=zstd:2"
+mntopt_nocow="autodefrag,space_cache=v2,noatime,nocow"
 
 # mount the new btrfs partition with some options
 mount -o "$mntopt" /dev/mapper/cryptroot /mnt
 
 # subvolume array
-subvolumes="@ @snapshot @home @opt @root @swap @tmp @usr_local \
-    @var_cache @var_lib_flatpack @var_lib_libvirt @var_log @var_tmp"
+subvolumes="@ @snapshot @home @opt @root @tmp @usr_local @var_lib_flatpack @var_log"
+subvolumes_nocow="@swap @tmp @var_cache @var_lib_libvirt @var_tmp"
 
 # create root, swap and snapshot subvolumes
+print_info "Creating subvolumes\n"
+for sv in $subvolumes; do
+    btrfs subvolume create "/mnt/$sv"
+done
 for sv in $subvolumes; do
     btrfs subvolume create "/mnt/$sv"
 done
 sync
 umount /mnt
 
+print_info "Mounting subvolumes\n"
 # mount subvolumes
 for sv in $subvolumes; do
     if [ "$sv" != "@" ]; then
         mkdir -p "/mnt/$(echo "${sv#@}" | sed 's/_/\//g')"
     fi
     mount -o "$mntopt,subvol=$sv" /dev/mapper/cryptroot \
+        "/mnt/$(echo "${sv#@}" | sed 's/_/\//g')"
+done
+
+# mount subvolumes with nocow
+for sv in $subvolumes_nocow; do
+    if [ "$sv" != "@" ]; then
+        mkdir -p "/mnt/$(echo "${sv#@}" | sed 's/_/\//g')"
+    fi
+    mount -o "$mntopt_nocow,subvol=$sv" /dev/mapper/cryptroot \
         "/mnt/$(echo "${sv#@}" | sed 's/_/\//g')"
 done
 
@@ -206,6 +250,8 @@ else
         grub-mkconfig -o /boot/grub/grub.cfg"
 fi
 
+print_info "Setting keymap, locale and hosts"
+
 # set keymap
 printf "KEYMAP=%s" "$lang" >/mnt/etc/vconsole.conf
 
@@ -222,12 +268,14 @@ printf "127.0.0.1	localhost\n::1		localhost\n" >/mnt/etc/hosts
 arch-chroot /mnt sh -c "mkinitcpio -P"
 
 # set root password
+print_info "Setting root password\n"
 arch-chroot /mnt sh -c "passwd"
 
 # chroot in the installed system and exec install.sh
 #arch-chroot /mnt install.sh
 
 # end
+print_info "Unmounting\n"
 swapoff /mnt/swap/.swapfile
 umount -R /mnt
 cryptsetup close cryptroot
