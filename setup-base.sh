@@ -161,8 +161,8 @@ fi
 mount -o "$mntopt" /dev/mapper/cryptroot /mnt
 
 # subvolume array
-subvolumes="@ @snapshot @home @opt @root @usr_local @var_lib_flatpack @var_log"
-subvolumes_nocow="@swap @tmp @var_cache @var_lib_libvirt @var_tmp"
+subvolumes="@ @snapshot @home @opt @root @usr_local @var_log"
+subvolumes_nocow="@swap @tmp @var_cache @var_tmp"
 
 # create root, swap and snapshot subvolumes
 print_info "Creating subvolumes\n"
@@ -178,20 +178,21 @@ umount /mnt
 print_info "Mounting subvolumes\n"
 # mount subvolumes
 for sv in $subvolumes; do
+    dir="/mnt/$(echo "${sv#@}" | sed 's/_/\//g')"
     if [ "$sv" != "@" ]; then
-        mkdir -p "/mnt/$(echo "${sv#@}" | sed 's/_/\//g')"
+        mkdir -p "$dir"
     fi
-    mount -o "$mntopt,subvol=$sv" /dev/mapper/cryptroot \
-        "/mnt/$(echo "${sv#@}" | sed 's/_/\//g')"
+    mount -o "$mntopt,subvol=$sv" /dev/mapper/cryptroot "$dir"
 done
 
 # mount subvolumes with nocow
 for sv in $subvolumes_nocow; do
+    dir="/mnt/$(echo "${sv#@}" | sed 's/_/\//g')"
     if [ "$sv" != "@" ]; then
-        mkdir -p "/mnt/$(echo "${sv#@}" | sed 's/_/\//g')"
+        mkdir -p "$dir"
     fi
-    mount -o "$mntopt_nocow,subvol=$sv" /dev/mapper/cryptroot \
-        "/mnt/$(echo "${sv#@}" | sed 's/_/\//g')"
+    mount -o "$mntopt_nocow,subvol=$sv" /dev/mapper/cryptroot "$dir"
+    chattr +C -R "$dir"
 done
 
 # mount boot/EFI partition
