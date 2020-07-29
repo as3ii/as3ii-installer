@@ -103,7 +103,7 @@ fi
 timedatectl set-ntp true
 
 # check efi/bios
-if ls /sys/firmware/efi/efivars >/dev/null; then
+if [ -d /sys/firmware/efi/efivars ]; then
     efi=true
     print_ok "EFI detected\n"
 else
@@ -111,7 +111,7 @@ else
     print_ok "BIOS detected\n"
 fi
 
-if "$(cat "/sys/block/$(echo "$disk" | sed 's/\/dev\///')/queue/rotational")" -eq "0"; then
+if [ "$(cat "/sys/block/$(echo "$disk" | sed 's/\/dev\///')/queue/rotational")" -eq "0" ]; then
     ssd=true
     print_ok "SSD detected\n"
 else
@@ -127,8 +127,13 @@ print_info "Partitioning $disk\n"
 sgdisk --zap-all "$disk"
 if $efi; then
     sgdisk -n 0:0:+260MiB -t 0:ef00 -c 0:BOOT "$disk"
+    boot="${disk}1"
+    root="${disk}2"
 else
-    sgdisk -n 0:0:+260MiB -t 0:ef02 -c 0:BOOT "$disk"
+    sgdisk -n 0:0:+1MiB -t 0:ef02 "$disk"
+    sgdisk -n 0:0:+259MiB -t 0:8304 -c 0:BOOT "$disk"
+    boot="${disk}2"
+    root="${disk}3"
 fi
 sgdisk -n 0:0:0 -t 0:8309 -c 0:cryptroot "$disk"
 
@@ -140,13 +145,13 @@ partprobe "$disk"
 sgdisk -p "$disk"
 
 print_info "Formatting boot partition\n"
-mkfs.vfat "${disk}1" # BOOT partition
+mkfs.vfat "$boot" # BOOT partition
 
 # crypt the other partition and format it in btrfs
 print_info "Setting luks2 partition\n"
-cryptsetup --type luks2 luksFormat "${disk}2"
-cryptsetup open "${disk}2" cryptroot
-print_info "Formatting root in btrfs"
+cryptsetup --type luks2 luksFormat "$root"
+cryptsetup open "$root" cryptroot
+print_info "Formatting root in btrfs\n"
 mkfs.btrfs -L arch --checksum xxhash /dev/mapper/cryptroot
 
 # common mount options
@@ -197,7 +202,7 @@ done
 
 # mount boot/EFI partition
 mkdir /mnt/boot
-mount "${disk}1" /mnt/boot
+mount "$boot" /mnt/boot
 
 
 # create swapfile system
@@ -236,7 +241,7 @@ sed -e 's/subvolid=[0-9]\+\,\?//g' \
 
 # set crypttab.initramfs
 cp /mnt/etc/crypttab /mnt/etc/crypttab.initramfs
-printf "cryptroot   UUID=%s   luks,discard\n" "$(lsblk -dno UUID "${disk}2")" \
+printf "cryptroot   UUID=%s   luks,discard\n" "$(lsblk -dno UUID "$root")" \
     >>/mnt/etc/crypttab.initramfs
 
 # update mkinitcpio
