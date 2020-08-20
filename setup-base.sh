@@ -15,8 +15,8 @@ print_error() {
 }
 
 ### Help
-if [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
-    print_info "Usage: $0 '/dev/sdX' 'uk'\n"
+print_help() {
+    print_info "Usage: $0 [-d '/dev/sdX'] [-k 'uk'] [-c]\n"
     print_info "This script will wipe the given device, "
     print_info "these are the partitions that will be created\n"
     print_info "1: boot partition\n"
@@ -46,48 +46,53 @@ if [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
     print_info "                @var_log         : /var/log\n"
     print_info "                @var_tmp         : /var/tmp          : nocow\n"
     exit
-fi
+}
+
+### Parameters management
+while [ -n "$1" ]; do
+    case "$1" in
+        -d|--device)
+            shift
+            device="$1";;
+        -k|--keyboard)
+            shift
+            keyboard="$1";;
+        #-c|--crypto)
+        #    shift
+        #    crypro="$1";;
+        *)
+            print_help;;
+    esac
+    shift
+done
 
 ### Device selection
 # print device list
 print_info "Device list: $(find /dev/ -regex "/dev/\(sd[a-z]\|nvme[0-9]n[0-9]\)")\n"
-# check if $1 not empty
-if [ -n "$1" ]; then
-    disk="$1"
-    shift
-else
-    disk=""
-fi
-# loop as long as $disk is a valid device
-while [ -z "$disk" ] || [ ! -e "$disk" ] || \
-    ! expr "$disk" : '^/dev/\(sd[a-z]\|nvme[0-9]n[0-9]\)$' >/dev/null; do
+# loop as long as $device is a valid device
+while [ -z "$device" ] || [ ! -e "$device" ] || \
+    ! expr "$device" : '^/dev/\(sd[a-z]\|nvme[0-9]n[0-9]\)$' >/dev/null; do
     print_info "Type the device name ('/dev/' required): "
-    read -r disk
-    [ ! -e "$disk" ] && print_error "This device doesn't exist\n"
-    if ! expr "$disk" : '^/dev/\(sd[a-z]\|nvme[0-9]n[0-9]\)$' >/dev/null; then
+    read -r device
+    [ ! -e "$device" ] && print_error "This device doesn't exist\n"
+    if ! expr "$device" : '^/dev/\(sd[a-z]\|nvme[0-9]n[0-9]\)$' >/dev/null; then
         print_error "You should type a device name, not a partition name\n"
-        disk=""
+        device=""
     fi
 done
 # check disk and ask if it is correct
-sgdisk -p "$disk"
+sgdisk -p "$device"
 print_info "This device will be wiped, are you sure you want to use this device? [y/N] "
 read -r sure
 [ "$sure" != 'y' ] && exit
 
 
 # load keyboard layout
-if [ -n "$1" ];then
-    lang="$1"
-    shift
-else
-    lang=""
-fi
-while [ -z "$lang" ] || ! localectl list-keymaps | grep -q "^$lang$"; do
+while [ -z "$keyboard" ] || ! localectl list-keymaps | grep -q "^$keyboard$"; do
     print_info "Type the keymap code (es. en): "
-    read -r lang
+    read -r keyboard
 done
-loadkeys "$lang"
+loadkeys "$keyboard"
 print_ok "Keymap loaded\n"
 
 set -eu
@@ -111,7 +116,7 @@ else
     print_ok "BIOS detected\n"
 fi
 
-if [ "$(cat "/sys/block/$(echo "$disk" | sed 's/\/dev\///')/queue/rotational")" -eq "0" ]; then
+if [ "$(cat "/sys/block/$(echo "$device" | sed 's/\/dev\///')/queue/rotational")" -eq "0" ]; then
     ssd=true
     print_ok "SSD detected\n"
 else
@@ -123,26 +128,26 @@ fi
 # partitioning
 #  260MiB EFI
 #  remaining: Linux Filesystem
-print_info "Partitioning $disk\n"
-sgdisk --zap-all "$disk"
+print_info "Partitioning $device\n"
+sgdisk --zap-all "$device"
 if $efi; then
-    sgdisk -n 0:0:+260MiB -t 0:ef00 -c 0:BOOT "$disk"
-    boot="${disk}1"
-    root="${disk}2"
+    sgdisk -n 0:0:+260MiB -t 0:ef00 -c 0:BOOT "$device"
+    boot="${device}1"
+    root="${device}2"
 else
-    sgdisk -n 0:0:+1MiB -t 0:ef02 "$disk"
-    sgdisk -n 0:0:+259MiB -t 0:8304 -c 0:BOOT "$disk"
-    boot="${disk}2"
-    root="${disk}3"
+    sgdisk -n 0:0:+1MiB -t 0:ef02 "$device"
+    sgdisk -n 0:0:+259MiB -t 0:8304 -c 0:BOOT "$device"
+    boot="${device}2"
+    root="${device}3"
 fi
-sgdisk -n 0:0:0 -t 0:8309 -c 0:cryptroot "$disk"
+sgdisk -n 0:0:0 -t 0:8309 -c 0:cryptroot "$device"
 
 # force re-reading the partition table
 sync
-partprobe "$disk"
+partprobe "$device"
 
 # print results
-sgdisk -p "$disk"
+sgdisk -p "$device"
 
 print_info "Formatting boot partition\n"
 mkfs.vfat "$boot" # BOOT partition
@@ -266,14 +271,14 @@ if $efi; then
         grub-mkconfig -o /boot/grub/grub.cfg"
 else
     arch-chroot /mnt sh -c "\
-        grub-install --target=i386-pc $disk; \
+        grub-install --target=i386-pc $device; \
         grub-mkconfig -o /boot/grub/grub.cfg"
 fi
 
 print_info "Setting keymap, locale and hosts"
 
 # set keymap
-printf "KEYMAP=%s" "$lang" >/mnt/etc/vconsole.conf
+printf "KEYMAP=%s" "$keyboard" >/mnt/etc/vconsole.conf
 
 # set locale
 sed 's/#en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /mnt/etc/locale.gen > /mnt/etc/locale.gen.new
