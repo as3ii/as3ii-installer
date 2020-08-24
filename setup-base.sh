@@ -22,7 +22,7 @@ print_help() {
     print_info "1: boot partition\n"
     print_info "            FS: vfat\n"
     print_info "            Mount Point: /boot\n"
-    print_info "2: luks2 encrypted partition\n"
+    print_info "2: luks2 encrypted partition (when enabled)\n"
     print_info "            Mount Point: /dev/mapper/cryptroot\n"
     print_info "    2.1: root partition\n"
     print_info "            FS: btrfs\n"
@@ -48,7 +48,9 @@ print_help() {
     exit
 }
 
+
 ### Parameters management
+crypt=false     # default
 while [ -n "$1" ]; do
     case "$1" in
         -d|--device)
@@ -57,14 +59,15 @@ while [ -n "$1" ]; do
         -k|--keyboard)
             shift
             keyboard="$1";;
-        #-c|--crypto)
-        #    shift
-        #    crypro="$1";;
+        -c|--crypt)
+            shift
+            crypt=true;;
         *)
             print_help;;
     esac
     shift
 done
+
 
 ### Device selection
 # print device list
@@ -87,7 +90,7 @@ read -r sure
 [ "$sure" != 'y' ] && exit
 
 
-# load keyboard layout
+### load keyboard layout
 while [ -z "$keyboard" ] || ! localectl list-keymaps | grep -q "^$keyboard$"; do
     print_info "Type the keymap code (es. en): "
     read -r keyboard
@@ -97,17 +100,19 @@ print_ok "Keymap loaded\n"
 
 set -eu
 
-# check internet availability
+### check internet availability
 print_info "Checking internet connection...\n"
 if ! curl -Ism 5 https://www.archlinux.org >/dev/null; then
     print_error "Internet connection is not working correctly. Exiting\n"
     exit
 fi
 
-# enable clock sync
+
+### enable clock sync
 timedatectl set-ntp true
 
-# check efi/bios
+
+### check efi/bios
 if [ -d /sys/firmware/efi/efivars ]; then
     efi=true
     print_ok "EFI detected\n"
@@ -116,6 +121,8 @@ else
     print_ok "BIOS detected\n"
 fi
 
+
+### check ssh/hdd
 if [ "$(cat "/sys/block/$(echo "$device" | sed 's/\/dev\///')/queue/rotational")" -eq "0" ]; then
     ssd=true
     print_ok "SSD detected\n"
@@ -125,7 +132,7 @@ else
 fi
 
 
-# partitioning
+### partitioning
 #  260MiB EFI
 #  remaining: Linux Filesystem
 print_info "Partitioning $device\n"
@@ -133,14 +140,19 @@ sgdisk --zap-all "$device"
 if $efi; then
     sgdisk -n 0:0:+260MiB -t 0:ef00 -c 0:BOOT "$device"
     boot="${device}1"
-    root="${device}2"
+    root_dev="${device}2"
 else
     sgdisk -n 0:0:+1MiB -t 0:ef02 "$device"
     sgdisk -n 0:0:+259MiB -t 0:8304 -c 0:BOOT "$device"
     boot="${device}2"
-    root="${device}3"
+    root_dev="${device}3"
 fi
-sgdisk -n 0:0:0 -t 0:8309 -c 0:cryptroot "$device"
+if $crypt; then
+    sgdisk -n 0:0:0 -t 0:8309 -c 0:cryptroot "$device"
+else
+    sgdisk -n 0:0:0 -t 0:8304 -c 0:root "$device"
+fi
+
 
 # force re-reading the partition table
 sync
@@ -149,15 +161,24 @@ partprobe "$device"
 # print results
 sgdisk -p "$device"
 
+### preparing partitions
+# boot
 print_info "Formatting boot partition\n"
 mkfs.vfat "$boot" # BOOT partition
 
-# crypt the other partition and format it in btrfs
-print_info "Setting luks2 partition\n"
-cryptsetup --type luks2 luksFormat "$root"
-cryptsetup open "$root" cryptroot
+# crypt root partition
+if $crypt; then
+    print_info "Setting luks2 partition\n"
+    cryptsetup --type luks2 luksFormat "$root_dev"
+    cryptsetup open "$root_dev" cryptroot
+    root="/dev/mapper/cryptroot"
+else
+    root="$root_dev"
+fi
+
+# formatting root partition using btrfs
 print_info "Formatting root in btrfs\n"
-mkfs.btrfs -L arch --checksum xxhash /dev/mapper/cryptroot
+mkfs.btrfs -L arch --checksum xxhash "$root"
 
 # common mount options
 mntopt="autodefrag,space_cache=v2,noatime,compress=zstd:2"
@@ -168,7 +189,7 @@ if $ssd; then
 fi
 
 # mount the new btrfs partition with some options
-mount -o "$mntopt" /dev/mapper/cryptroot /mnt
+mount -o "$mntopt" "$root" /mnt
 
 # subvolume array
 subvolumes="@ @snapshot @home @opt @root @usr_local @var_log"
@@ -192,7 +213,7 @@ for sv in $subvolumes; do
     if [ "$sv" != "@" ]; then
         mkdir -p "$dir"
     fi
-    mount -o "$mntopt,subvol=$sv" /dev/mapper/cryptroot "$dir"
+    mount -o "$mntopt,subvol=$sv" "$root" "$dir"
 done
 
 # mount subvolumes with nocow
@@ -201,7 +222,7 @@ for sv in $subvolumes_nocow; do
     if [ "$sv" != "@" ]; then
         mkdir -p "$dir"
     fi
-    mount -o "$mntopt_nocow,subvol=$sv" /dev/mapper/cryptroot "$dir"
+    mount -o "$mntopt_nocow,subvol=$sv" "$root" "$dir"
     chattr +C -R "$dir"
 done
 
@@ -220,6 +241,7 @@ swapon /mnt/swap/.swapfile
 
 sync
 
+### base installation
 # update local pgp keys
 print_info "Updating archlinux keyring\n"
 pacman -Sy archlinux-keyring --noconfirm
@@ -235,7 +257,7 @@ pacstrap /mnt base linux linux-firmware \
     btrfs-progs man-db man-pages neovim git grub efibootmgr
 
 # generate fstab
-print_info "Generating fstab and crypttab\n"
+print_info "Generating fstab\n"
 genfstab -U /mnt >> /mnt/etc/fstab
 
 # fix fstab
@@ -245,24 +267,32 @@ sed -e 's/subvolid=[0-9]\+\,\?//g' \
     /mnt/etc/fstab.old >/mnt/etc/fstab
 
 # set crypttab.initramfs
-cp /mnt/etc/crypttab /mnt/etc/crypttab.initramfs
-printf "cryptroot   UUID=%s   luks,discard\n" "$(lsblk -dno UUID "$root")" \
-    >>/mnt/etc/crypttab.initramfs
+if $crypt; then
+    print_info "Creating crypttab"
+    cp /mnt/etc/crypttab /mnt/etc/crypttab.initramfs
+    printf "cryptroot   UUID=%s   luks,discard\n" "$(lsblk -dno UUID "$root_dev")" \
+        >>/mnt/etc/crypttab.initramfs
+fi
 
 # update mkinitcpio
 print_info "Updating mkinitcpio.conf\n"
 mv /mnt/etc/mkinitcpio.conf /mnt/etc/mkinitcpio.conf.old
-sed -e 's/^BINARIES=()/BINARIES=(\/usr\/bin\/btrfs)/' \
-    -e 's/^HOOKS=(.*)/HOOKS=(base systemd autodetect keyboard \\\
-    sd-vconsole modconf block sd-encrypt filesystems fsck)/' \
-    /mnt/etc/mkinitcpio.conf.old >/mnt/etc/mkinitcpio.conf
+if $crypt; then
+    sed -e 's/^BINARIES=()/BINARIES=(\/usr\/bin\/btrfs)/' \
+        -e 's/^HOOKS=(.*)/HOOKS=(base systemd autodetect keyboard \\\
+        sd-vconsole modconf block sd-encrypt filesystems fsck)/' \
+        /mnt/etc/mkinitcpio.conf.old >/mnt/etc/mkinitcpio.conf
+else
+    sed -e 's/^BINARIES=()/BINARIES=(\/usr\/bin\/btrfs)/' \
+        -e 's/^HOOKS=(.*)/HOOKS=(base systemd autodetect keyboard \\\
+        sd-vconsole modconf block filesystems fsck)/' \
+        /mnt/etc/mkinitcpio.conf.old >/mnt/etc/mkinitcpio.conf
+fi
 
 # fix grub config
 print_info "Configuring and installing grub\n"
 mv /mnt/etc/default/grub /mnt/etc/default/grub.old
-sed -e 's/quiet//' \
-    -e 's/^#GRUB_ENABLE_CRYPTODISK=./GRUB_ENABLE_CRYPTODISK=y/' \
-    /mnt/etc/default/grub.old >/mnt/etc/default/grub
+sed -e 's/quiet//' /mnt/etc/default/grub.old >/mnt/etc/default/grub
 
 # setup grub
 if $efi; then
@@ -303,7 +333,9 @@ arch-chroot /mnt sh -c "passwd"
 print_info "Unmounting\n"
 swapoff /mnt/swap/.swapfile
 umount -R /mnt
-cryptsetup close cryptroot
+if $crypt; then
+    cryptsetup close cryptroot
+fi
 
 print_ok "\nEND\n\n"
 
