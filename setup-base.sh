@@ -60,7 +60,6 @@ while [ -n "$1" ]; do
             shift
             keyboard="$1";;
         -c|--crypt)
-            shift
             crypt=true;;
         *)
             print_help;;
