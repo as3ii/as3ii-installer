@@ -50,4 +50,4 @@ configure and install grub, and setting some base things such as keymap and loca
 - [x] more verbose output
 - [x] grub installation and configuration
 - [ ] rEFInd installation and configuration
-- [ ] make luks's cryptography optional
+- [x] make luks's cryptography optional
