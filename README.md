@@ -51,3 +51,6 @@ configure and install grub, and setting some base things such as keymap and loca
 - [x] grub installation and configuration
 - [ ] rEFInd installation and configuration
 - [x] make luks's cryptography optional
+- [ ] /boot encryption
+- [ ] snapshot after installation
+- [ ] post-base-install script download & launch
