@@ -16,10 +16,12 @@ print_error() {
 
 ### Help
 print_help() {
-    print_info "Usage: $0 [-d '/dev/sdX'] [-k 'uk'] [-c]\n"
+    print_info "Usage: $0 [-d '/dev/sdX'] [-k 'uk'] [-c] [-b]\n"
     print_info "This script will wipe the given device, "
     print_info "these are the partitions that will be created\n"
-    print_info "1: boot partition\n"
+    print_info "1: luks1 encrypted partition (when enabled)\n"
+    print_info "            Mount Point: /dev/mapper/cryptboot\n"
+    print_info "    1.1: boot partition\n"
     print_info "            FS: vfat\n"
     print_info "            Mount Point: /boot\n"
     print_info "2: luks2 encrypted partition (when enabled)\n"
@@ -50,7 +52,10 @@ print_help() {
 
 
 ### Parameters management
-crypt=false     # default
+# set defaults
+crypt=false
+boot_crypt=false
+# check parameters
 while [ -n "$1" ]; do
     case "$1" in
         -d|--device)
@@ -61,6 +66,8 @@ while [ -n "$1" ]; do
             keyboard="$1";;
         -c|--crypt)
             crypt=true;;
+        -b|--bootcrypt)
+            boot_crypt=true;;
         *)
             print_help;;
     esac
@@ -137,13 +144,21 @@ fi
 print_info "Partitioning $device\n"
 sgdisk --zap-all "$device"
 if $efi; then
-    sgdisk -n 0:0:+260MiB -t 0:ef00 -c 0:BOOT "$device"
-    boot="${device}1"
+    if $boot_crypt; then
+        sgdisk -n 0:0:+260MiB -t 0:8309 -c 0:cryptboot "$device"
+    else
+        sgdisk -n 0:0:+260MiB -t 0:ef00 -c 0:boot "$device"
+    fi
+    boot_dev="${device}1"
     root_dev="${device}2"
 else
     sgdisk -n 0:0:+1MiB -t 0:ef02 "$device"
-    sgdisk -n 0:0:+259MiB -t 0:8304 -c 0:BOOT "$device"
-    boot="${device}2"
+    if $boot_crypt; then
+        sgdisk -n 0:0:+259MiB -t 0:8309 -c 0:cryptboot "$device"
+    else
+        sgdisk -n 0:0:+259MiB -t 0:ef00 -c 0:boot "$device"
+    fi
+    boot_dev="${device}2"
     root_dev="${device}3"
 fi
 if $crypt; then
@@ -161,13 +176,21 @@ partprobe "$device"
 sgdisk -p "$device"
 
 ### preparing partitions
-# boot
-print_info "Formatting boot partition\n"
-mkfs.vfat "$boot" # BOOT partition
+# boot partition
+if $boot_crypt; then
+    print_info "Setting luks1 boot partition\n"
+    cryptsetup --type luks1 luksFormat "$boot_dev"
+    cryptsetup open "$boot_dev" cryptboot
+    boot="/dev/mapper/cryptboot"
+else
+    boot="$boot_dev"
+fi
+print_info "Formatting boot in vfat\n"
+mkfs.vfat "$boot"
 
-# crypt root partition
+# root partition
 if $crypt; then
-    print_info "Setting luks2 partition\n"
+    print_info "Setting luks2 root partition\n"
     cryptsetup --type luks2 luksFormat "$root_dev"
     cryptsetup open "$root_dev" cryptroot
     root="/dev/mapper/cryptroot"
@@ -266,12 +289,19 @@ sed -e 's/subvolid=[0-9]\+\,\?//g' \
     /mnt/etc/fstab.old >/mnt/etc/fstab
 
 # set crypttab.initramfs
-if $crypt; then
+if $crypt || $boot_crypt; then
     print_info "Creating crypttab"
     cp /mnt/etc/crypttab /mnt/etc/crypttab.initramfs
-    printf "cryptroot   UUID=%s   luks,discard\n" "$(lsblk -dno UUID "$root_dev")" \
-        >>/mnt/etc/crypttab.initramfs
+    if $crypt; then
+        printf "cryptroot   UUID=%s   luks,discard\n" "$(lsblk -dno UUID "$root_dev")" \
+            >>/mnt/etc/crypttab.initramfs
+    fi
+    if $boot_crypt; then
+        printf "cryptboot   UUID=%s   luks,discard\n" "$(lsblk -dno UUID "$boot_dev")" \
+            >>/mnt/etc/crypttab.initramfs
+    fi
 fi
+
 
 # update mkinitcpio
 print_info "Updating mkinitcpio.conf\n"
@@ -291,7 +321,13 @@ fi
 # fix grub config
 print_info "Configuring and installing grub\n"
 mv /mnt/etc/default/grub /mnt/etc/default/grub.old
-sed -e 's/quiet//' /mnt/etc/default/grub.old >/mnt/etc/default/grub
+if $boot_crypt; then
+    sed -e 's/quiet//' \
+        -e 's/^#GRUB_ENABLE_CRYPTODISK=./GRUB_ENABLE_CRYPTODISK=y/' \
+        /mnt/etc/default/grub.old >/mnt/etc/default/grub
+else
+    sed -e 's/quiet//' /mnt/etc/default/grub.old >/mnt/etc/default/grub
+fi
 
 # setup grub
 if $efi; then
