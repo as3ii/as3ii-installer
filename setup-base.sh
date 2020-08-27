@@ -371,6 +371,9 @@ umount -R /mnt
 if $crypt; then
     cryptsetup close cryptroot
 fi
+if $boot_crypt; then
+    cryptsetup close cryptboot
+fi
 
 print_ok "\nEND\n\n"
 
