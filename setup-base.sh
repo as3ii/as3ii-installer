@@ -253,7 +253,7 @@ reflector -l 100 -f 10 -p https --sort rate --save /etc/pacman.d/mirrorlist
 # install system
 print_info "Installing basic system\n"
 pacstrap /mnt base linux linux-firmware \
-    btrfs-progs man-db man-pages neovim git grub efibootmgr
+    btrfs-progs man-db man-pages git grub efibootmgr
 
 # generate fstab
 print_info "Generating fstab\n"
