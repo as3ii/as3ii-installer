@@ -16,11 +16,13 @@ This script will wipe the given device, these are the partitions that will be cr
 ```
 1: boot partition
             FS: vfat
+            Size: 500M (499M if efi is not detected)
             Mount Point: /boot
 2: luks2 encrypted partition (when enabled)
             Mount Point: /dev/mapper/cryptroot
     2.1: root partition
             FS: btrfs
+            Size: rest of the disk
             Hash: xxhash
             Mount Point: none
             Mount Options: autodefrag,space_cache=v2,noatime,compress=zstd:2
