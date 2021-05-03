@@ -50,6 +50,13 @@ print_help() {
     exit
 }
 
+if [ "$USER" != "root" ]; then
+    sudo "$0" || (
+        print_error "Please run this script as root\n"
+        exit 1
+    )
+    exit 0
+fi
 
 ### Parameters management
 crypt=false     # default
