@@ -6,9 +6,16 @@
 - `./setup-base.sh` to execute it
 
 If you want, you can pass some parameters:
-- `-d '/dev/sdX'` to select the device
-- `-k 'uk'` for keyboard layout
-- `-c` to enable luks2 encryption
+- `-d /dev/sdX` select device to be wiped and formatted
+- `-e /mnt/boot/efi` select partition or mountpoint to use as EFI
+- `-b /mnt/boot` select partition or mountpoint to use as Boot
+- `-r /mnt` select partition or mountpoint to use as Root
+- `-k uk` select keyboard layout
+- `-c` enable root partition encryption with luks2
+Use -e, -b and -r if you have manually created (and optionally formatted and
+mounted) the needed partitions. In this case -d option will be ignored if present.
+If -e, -b, -r and -d are not set, then this script will try to install the system
+on the default folders (the ones specified above)
 
 
 ## What setup-base.sh does

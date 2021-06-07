@@ -14,39 +14,60 @@ print_error() {
     printf "\e[31m%b\e[0m" "$1"
 }
 
+### Usage
+print_usage() {
+    printf "\e[31m"
+    cat << EOF
+Usage: $0 [-d /dev/sdX] [-e /dev/sdXY] [-b /dev/sdXY] [-r /dev/sdXY] [-k uk] [-c]
+    -d /dev/sdX         select device to be wiped and formatted
+    -e /mnt/boot/efi    select partition or mountpoint to use as EFI
+    -b /mnt/boot        select partition or mountpoint to use as Boot
+    -r /mnt             select partition or mountpoint to use as Root
+    -k uk               select keyboard layout
+    -c                  enable root partition encryption with luks2
+    Use -e, -b and -r if you have manually created (and optionally formatted and
+    mounted) the needed partitions. In this case-d option will be ignored if present
+EOF
+    printf "\e[0m"
+    exit
+}
+
 ### Help
 print_help() {
-    print_info "Usage: $0 [-d '/dev/sdX'] [-k 'uk'] [-c]\n"
-    print_info "This script will wipe the given device, "
-    print_info "these are the partitions that will be created\n"
-    print_info "1: boot partition\n"
-    print_info "            FS: vfat\n"
-    print_info "            Size: 500M (499M if efi is not detected)\n"
-    print_info "            Mount Point: /boot\n"
-    print_info "2: luks2 encrypted partition (when enabled)\n"
-    print_info "            Mount Point: /dev/mapper/cryptroot\n"
-    print_info "    2.1: root partition\n"
-    print_info "            FS: btrfs\n"
-    print_info "            Size: rest of the disk\n"
-    print_info "            Hash: xxhash\n"
-    print_info "            Mount Point: none\n"
-    print_info "            Mount Options: autodefrag,space_cache=v2,noatime,compress=zstd:2\n"
-    print_info "                           'discard=async' will be added when ssd is detected\n"
-    print_info "            Subvolumes:\n"
-    print_info "                Subolume         : Mount Point       : specific options\n"
-    print_info "                @                : /\n"
-    print_info "                @snapshot        : /snapshot\n"
-    print_info "                @home            : /home\n"
-    print_info "                @opt             : /opt\n"
-    print_info "                @root            : /root\n"
-    print_info "                @swap            : /swap             : nocow\n"
-    print_info "                @tmp             : /tmp              : nocow\n"
-    print_info "                @usr_local       : /usr/local\n"
-    print_info "                @var_cache       : /var/cache        : nocow\n"
-    print_info "                @var_lib_flatpack: /var/lib/flatpack\n"
-    print_info "                @var_lib_libvirt : /var/lib/libvirt  : nocow\n"
-    print_info "                @var_log         : /var/log\n"
-    print_info "                @var_tmp         : /var/tmp          : nocow\n"
+    print_usage
+    printf "\e[31m"
+    cat << EOF
+This script will wipe the given device, these are the partitions that will be created
+1: boot partition
+            FS: vfat
+            Size: 500M (499M if efi is not detected)
+            Mount Point: /boot
+2: luks2 encrypted partition (when enabled)
+            Mount Point: /dev/mapper/cryptroot
+    2.1: root partition
+            FS: btrfs
+            Size: rest of the disk
+            Hash: xxhash
+            Mount Point: none
+            Mount Options: autodefrag,space_cache=v2,noatime,compress=zstd:2
+                           'discard=async' will be added when ssd is detected
+            Subvolumes:
+                Subolume         : Mount Point       : specific options
+                @                : /
+                @snapshot        : /snapshot
+                @home            : /home
+                @opt             : /opt
+                @root            : /root
+                @swap            : /swap             : nocow
+                @tmp             : /tmp              : nocow
+                @usr_local       : /usr/local
+                @var_cache       : /var/cache        : nocow
+                @var_lib_flatpack: /var/lib/flatpack
+                @var_lib_libvirt : /var/lib/libvirt  : nocow
+                @var_log         : /var/log
+                @var_tmp         : /var/tmp          : nocow
+EOF
+    printf "\e[0m"
     exit
 }
 
@@ -65,6 +86,15 @@ while [ -n "$1" ]; do
         -d|--device)
             shift
             device="$1";;
+        -e|--efi)
+            shift
+            efi_path="$1";;
+        -b|--boot)
+            shift
+            boot_path="$1";;
+        -r|--root)
+            shift
+            root_path="$1";;
         -k|--keyboard)
             shift
             keyboard="$1";;
