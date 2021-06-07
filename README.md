@@ -56,7 +56,7 @@ configure and install grub, and setting some base things such as keymap and loca
 
 ## To Do:
 - [ ] add more checks
-- [ ] add more options for more customizability
+- [ ] add more options for more customizability (in progress)
 - [ ] add zram
 - [x] more verbose output
 - [x] grub installation and configuration
