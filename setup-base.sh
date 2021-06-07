@@ -266,6 +266,11 @@ if [ "$os_id" = "arch" ]; then
     if $crypt; then
         flag_c="-c"
     fi
+    if ! [ -e ./arch.sh ]; then
+        curl --proto '=https' -sSfO \
+            https://raw.githubusercontent.com/as3ii/as3ii-installer/master/arch.sh
+        chmod u+x arch.sh
+    fi
     ./arch.sh "$flag_c" -k "$keyboard" -d "$device" -r "$root_dev"
 fi
 
