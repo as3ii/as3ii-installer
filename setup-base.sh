@@ -272,6 +272,18 @@ if [ "$os_id" = "arch" ]; then
         chmod u+x arch.sh
     fi
     ./arch.sh "$flag_c" -k "$keyboard" -d "$device" -r "$root_dev"
+elif [ "$os_id" = "nixos" ]; then
+    if ! [ -e ./nixos.sh ]; then
+        curl --proto '=https' -sSfO \
+            https://raw.githubusercontent.com/as3ii/as3ii-installer/master/nixos.sh
+        chmod u+x nixos.sh
+    fi
+    # TODO: configuration files download
+    ./nixos.sh
+elif [ -e "${os_id}.sh" ]; then
+    ./"${os_id}.sh"
+else
+    print_error "Installation script for \"$os_id\" not found\n"
 fi
 
 
