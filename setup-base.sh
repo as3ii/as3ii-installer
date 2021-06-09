@@ -135,7 +135,7 @@ if [ -z "$boot_path" ] && [ -z "$root_path" ]; then
     efi_path="$boot_path"
     ### Device selection
     # print device list
-    print_info "Device list: $(find /dev/ -regex "/dev/\(sd[a-z]\|vd[a-z]\nnvme[0-9]n[0-9]\)")\n"
+    print_info "Device list: $(find /dev/ -regex "/dev/\(sd[a-z]\|vd[a-z]\|nvme[0-9]n[0-9]\)")\n"
     # loop as long as $device is a valid device
     while [ -z "$device" ] || [ ! -e "$device" ] || \
         ! expr "$device" : '^/dev/\(sd[a-z]\|vd[a-z]\|nvme[0-9]n[0-9]\)$' >/dev/null; do
