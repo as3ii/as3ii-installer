@@ -21,6 +21,15 @@ while [ -n "$1" ]; do
         -d|--device)
             shift
             device="$1";;
+        -e|--efi)
+            shift
+            efi_path="$1";;
+        -b|--boot)
+            shift
+            boot_path="$1";;
+        -r|--root)
+            shift
+            root_path="$1";;
         -k|--keyboard)
             shift
             keyboard="$1";;
@@ -30,7 +39,7 @@ while [ -n "$1" ]; do
             shift
             root_dev="$1";;
         *)
-            print_error "Flag \"$1\" does not exist";;
+            print_error "Flag \"$1\" does not exist\n";;
     esac
     shift
 done
@@ -84,7 +93,7 @@ sed -e 's/subvolid=[0-9]\+\,\?//g' \
 
 # set crypttab.initramfs
 if $crypt; then
-    print_info "Creating crypttab"
+    print_info "Creating crypttab\n"
     cp /mnt/etc/crypttab /mnt/etc/crypttab.initramfs
     printf "cryptroot   UUID=%s   luks,discard\n" "$(lsblk -dno UUID "$root_dev")" \
         >>/mnt/etc/crypttab.initramfs
@@ -121,7 +130,7 @@ else
         grub-mkconfig -o /boot/grub/grub.cfg"
 fi
 
-print_info "Setting keymap, locale and hosts"
+print_info "Setting keymap, locale and hosts\n"
 
 # set keymap
 printf "KEYMAP=%s" "$keyboard" >/mnt/etc/vconsole.conf
