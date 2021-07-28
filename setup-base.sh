@@ -282,7 +282,7 @@ if [ "$os_id" = "arch" ]; then
             https://raw.githubusercontent.com/as3ii/as3ii-installer/master/arch.sh
         chmod u+x arch.sh
     fi
-    ./arch.sh "$flag_c" -k "$keyboard" -d "$device" -r "$root_dev" \
+    ./arch.sh "$flag_c" -k "$keyboard" -d "$device" -R "$root_dev" \
         -b "$boot_path" -r "$root_path" -e "$efi_path"
 elif [ "$os_id" = "nixos" ]; then
     if ! [ -e ./nixos.sh ]; then
@@ -301,8 +301,8 @@ fi
 
 # end
 print_info "Unmounting\n"
-swapoff /mnt/swap/.swapfile
-umount -R /mnt
+swapoff "$root_path"/swap/.swapfile
+umount -R "$root_path"
 if $crypt; then
     cryptsetup close cryptroot
 fi
