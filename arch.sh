@@ -26,9 +26,9 @@ while [ -n "$1" ]; do
         -d|--device)
             shift
             device="$1";;
-        -e|--efi)
-            shift
-            efi_path="$1";;
+        # -e|--efi)
+        #     shift
+        #     efi_path="$1";;
         -b|--boot)
             shift
             boot_path="$1";;
