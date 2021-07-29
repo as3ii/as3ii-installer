@@ -25,22 +25,22 @@ fi
 
 ### Parameters management
 # defaults:
-crypt=false
+#crypt=false
 root_path="/mnt"
 boot_path="$root_path/boot"
-efi_path="$boot_path"
-keyboard="en"
+#efi_path="$boot_path"
+#keyboard="en"
 while [ -n "$1" ]; do
     case "$1" in
-        -d|--device)
-            shift
-            device="$1";;
+        # -d|--device)
+        #     shift
+        #     device="$1";;
         # -e|--efi)
         #     shift
         #     efi_path="$1";;
-        -b|--boot)
-            shift
-            boot_path="$1";;
+        # -b|--boot)
+        #     shift
+        #     boot_path="$1";;
         -r|--root)
             shift
             root_path="$1";;
@@ -49,23 +49,23 @@ while [ -n "$1" ]; do
         #     keyboard="$1";;
         # -c|--crypt)
         #     crypt=true;;
-        -R|--root-dev)
-            shift
-            root_dev="$1";;
+        # -R|--root-dev)
+        #     shift
+        #     root_dev="$1";;
         *)
             print_error "Flag \"$1\" does not exist\n";;
     esac
     shift
 done
 
-if [ -z "$device" ]; then
-    print_error "-d/--device parameter must be set. Exiting\n"
-    exit 1
-fi
-if [ -z "$root_dev" ]; then
-    print_error "-r/--root-dev parameter must be set. Exiting\n"
-    exit 1
-fi
+# if [ -z "$device" ]; then
+#     print_error "-d/--device parameter must be set. Exiting\n"
+#     exit 1
+# fi
+# if [ -z "$root_dev" ]; then
+#     print_error "-r/--root-dev parameter must be set. Exiting\n"
+#     exit 1
+# fi
 
 
 if [ -e "$root_path"/etc/nixos/hardware-configuration.nix ]; then

@@ -203,7 +203,7 @@ if [ -z "$boot_path" ] && [ -z "$root_path" ]; then
 
     # formatting root partition using btrfs
     print_info "Formatting root in btrfs\n"
-    mkfs.btrfs -L arch --checksum xxhash "$root"
+    mkfs.btrfs -L arch -f --checksum xxhash "$root"
 
 
     ### check ssh/hdd
@@ -294,7 +294,7 @@ elif [ "$os_id" = "nixos" ]; then
         chmod u+x nixos.sh
     fi
     # TODO: configuration files download
-    ./nixos.sh
+    ./nixos.sh -r "$root_path"
 elif [ -e "${os_id}.sh" ]; then
     ./"${os_id}.sh"
 else
