@@ -16,10 +16,7 @@ print_error() {
 
 
 if [ "$USER" != "root" ]; then
-    sudo "$0" || (
-        print_error "Please run this script as root\n"
-        exit 1
-    )
+    sudo "$0" "$@" || exit 1
     exit 0
 fi
 
@@ -27,9 +24,9 @@ fi
 # defaults:
 #crypt=false
 root_path="/mnt"
-boot_path="$root_path/boot"
-#efi_path="$boot_path"
-#keyboard="en"
+# boot_path="$root_path/boot"
+# efi_path="$boot_path"
+# keyboard="en"
 while [ -n "$1" ]; do
     case "$1" in
         # -d|--device)
@@ -68,7 +65,7 @@ done
 # fi
 
 
-if [ -e "$root_path"/etc/nixos/hardware-configuration.nix ]; then
+if ! [ -e "$root_path"/etc/nixos/hardware-configuration.nix ]; then
     print_info "genereting configuration files\n"
     nixos-generate-config --root "$root_path"
 fi

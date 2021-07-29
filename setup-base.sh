@@ -72,10 +72,7 @@ EOF
 }
 
 if [ "$USER" != "root" ]; then
-    sudo "$0" || (
-        print_error "Please run this script as root\n"
-        exit 1
-    )
+    sudo "$0" "$@" || exit 1
     exit 0
 fi
 
@@ -155,7 +152,21 @@ if [ -z "$boot_path" ] && [ -z "$root_path" ]; then
     sgdisk -p "$device"
     print_info "This device will be wiped, are you sure you want to use this device? [y/N] "
     read -r sure
-    [ "$sure" != 'y' ] && exit
+    [ "$sure" != 'y' ] && exit 1
+
+    # unmount partitions on $device if mounted
+    mount | grep "$device" | sort -u -k 1,1 | cut -d ' ' -f 3 | while read -r i; do
+        print_info "unmounting $i\n"
+        umount -R "$i"
+    done
+    # clean previous runs
+    if [ -e /dev/mapper/cryptroot ]; then
+        mount | grep "/dev/mapper/cryptroot" | sort -u -k 1,1 | cut -d ' ' -f 3 | while read -r i; do
+            print_info "unmounting $i\n"
+            umount -R "$i"
+        done
+        cryptsetup close /dev/mapper/cryptroot
+    fi
 
     ### partitioning
     #  260MiB EFI
