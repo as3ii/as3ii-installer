@@ -110,12 +110,15 @@ done
 
 
 ### load keyboard layout
-while [ -z "$keyboard" ] || ! localectl list-keymaps | grep -q "^$keyboard$"; do
-    print_info "Type the keymap code (es. en): "
-    read -r keyboard
-done
-loadkeys "$keyboard"
-print_ok "Keymap loaded\n"
+if ! command -v localectl >/dev/null && \
+    ! (localectl list-keymaps | grep "Failed to read list of keymaps" >/dev/null); then
+    while [ -z "$keyboard" ] || ! localectl list-keymaps | grep -q "^$keyboard$"; do
+        print_info "Type the keymap code (es. en): "
+        read -r keyboard
+    done
+    loadkeys "$keyboard"
+    print_ok "Keymap loaded\n"
+fi
 
 
 ### check efi/bios
