@@ -315,7 +315,7 @@ fi
 
 # end
 print_info "Unmounting\n"
-swapoff "$root_path"/swap/.swapfile
+[ -e "$root_path"swap/.swapfile ] && swapoff "$root_path"/swap/.swapfile
 umount -R "$root_path"
 if $crypt; then
     cryptsetup close cryptroot
