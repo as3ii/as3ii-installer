@@ -2,7 +2,7 @@
 ## Usage
 - start the live environment
 - `curl --proto '=https' -sSfO https://raw.githubusercontent.com/as3ii/as3ii-installer/master/setup-base.sh` to download the script
-- `chattr +x setup-base.sh` to make it executable
+- `chmod +x setup-base.sh` to make it executable
 - `./setup-base.sh` to execute it
 
 If you want, you can pass some parameters:
