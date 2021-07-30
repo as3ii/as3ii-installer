@@ -1,4 +1,4 @@
-# My personal ArchLinux installer
+# My personal ArchLinux/NixOS installer
 ## Usage
 - start the live environment
 - `curl --proto '=https' -sSfO https://raw.githubusercontent.com/as3ii/as3ii-installer/master/setup-base.sh` to download the script
