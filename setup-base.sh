@@ -175,13 +175,23 @@ if [ -z "$boot_path" ] && [ -z "$root_path" ]; then
     sgdisk --zap-all "$device"
     if $efi; then
         sgdisk -n 0:0:+260MiB -t 0:ef00 -c 0:BOOT "$device"
-        boot="${device}1"
-        root_dev="${device}2"
+        if echo "$device" | grep -q "nvme"; then
+            boot="${device}p1"
+            root_dev="${device}p2"
+        else
+            boot="${device}1"
+            root_dev="${device}2"
+        fi
     else
         sgdisk -n 0:0:+1MiB -t 0:ef02 "$device"
         sgdisk -n 0:0:+259MiB -t 0:8304 -c 0:BOOT "$device"
-        boot="${device}2"
-        root_dev="${device}3"
+        if echo "$device" | grep -q "nvme"; then
+            boot="${device}p2"
+            root_dev="${device}p3"
+        else
+            boot="${device}2"
+            root_dev="${device}3"
+        fi
     fi
     if $crypt; then
         sgdisk -n 0:0:0 -t 0:8309 -c 0:cryptroot "$device"
