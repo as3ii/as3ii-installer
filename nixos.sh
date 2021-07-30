@@ -64,11 +64,44 @@ done
 #     exit 1
 # fi
 
+hwconf_path="$root_path/etc/nixos/hardware-configuration.nix"
 
-if ! [ -e "$root_path"/etc/nixos/hardware-configuration.nix ]; then
+if ! [ -e "$hwconf_path" ]; then
     print_info "genereting configuration files\n"
     nixos-generate-config --root "$root_path"
 fi
+
+# btrfs configs
+_root="$(grep -A4 'fileSystems\."/" =' "$hwconf_path")"
+if echo "$_root" | grep 'fsType = "btrfs"'; then
+    print_info "add xxhash kernel module if missing in hardware-configuration.nix\n"
+    grep -q "boot\.initrd\.availableKernelModules = \[.*xxhash.*\];" "$hwconf_path" || \
+        sed -i '/boot\.initrd\.availableKernelModules = \[/ s/\];/"xxhash" \];/' \
+            "$hwconf_path"
+
+    _uuid="$(
+        echo "$_root" | \
+            grep -oE '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
+    )"
+
+    print_info "add mount options for btrfs root filesystem\n"
+    subvolumes_nocow="@swap @tmp @var_cache @var_tmp"
+    # base mount options
+    grep -A3 "$_uuid" "$hwconf_path" | grep -o '"subvol=@[a-z]*"' | \
+        while read -r i; do
+            sed -i "/$i/ s/\];/\"autodefrag\" \"space_cache=v2\" \"noatime\" \"compress=zstd:2\" \];/" \
+                "$hwconf_path"
+        done
+    # nocow subvolumes
+    for i in $subvolumes_nocow; do
+        n="$(grep -A3 "$_uuid" "$hwconf_path" | grep -n "\"subvol=$i\"" | cut -d: -f1)"
+        if [ -n "$n" ]; then
+            sed -i "${n}s/compress=zstd:2/nocow/" "$hwconf_path"
+        fi
+    done
+fi
+
+print_info "add mount options to subvolumes\n"
 
 print_info "setting swap if not already set\n"
 # shellcheck disable=SC1004
