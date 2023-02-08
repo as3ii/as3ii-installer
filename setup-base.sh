@@ -29,7 +29,6 @@ Usage: $0 [-d /dev/sdX] [-e /dev/sdXY] [-b /dev/sdXY] [-r /dev/sdXY] [-k uk] [-c
     mounted) the needed partitions. In this case-d option will be ignored if present
 EOF
     printf "\e[0m"
-    exit
 }
 
 ### Help
@@ -68,7 +67,6 @@ This script will wipe the given device, these are the partitions that will be cr
                 @var_tmp         : /var/tmp          : nocow
 EOF
     printf "\e[0m"
-    exit
 }
 
 if [ "$USER" != "root" ]; then
@@ -78,29 +76,44 @@ fi
 
 ### Parameters management
 crypt=false     # default
+device=""
+efi_path=""
+boot_path=""
+root_path=""
+keyboard=""
 while [ -n "$1" ]; do
     case "$1" in
         -d|--device)
             shift
-            device="$1";;
+            device="$1"
+            ;;
         -e|--efi)
             shift
-            efi_path="$1";;
+            efi_path="$1"
+            ;;
         -b|--boot)
             shift
-            boot_path="$1";;
+            boot_path="$1"
+            ;;
         -r|--root)
             shift
-            root_path="$1";;
+            root_path="$1"
+            ;;
         -k|--keyboard)
             shift
-            keyboard="$1";;
+            keyboard="$1"
+            ;;
         -c|--crypt)
-            crypt=true;;
+            crypt=true
+            ;;
         -h)
-            print_usage;;
+            print_usage
+            exit
+            ;;
         *)
-            print_help;;
+            print_help
+            exit
+            ;;
     esac
     shift
 done
